@@ -3,56 +3,78 @@ import 'package:flutter/material.dart';
 import 'package:rfw/rfw.dart';
 
 /// Registers custom chart widgets so RFW remote descriptions can reference them.
+///
+/// The RFW [LocalWidgetBuilder] signature is:
+///   Widget Function(BuildContext context, DataSource source)
+///
+/// Data is read from [source] using path-based API:
+///   source.v`<T>`(['key'])         → typed scalar value
+///   source.isList(['key'])        → check if list
+///   source.length(['key'])        → list length
+///   source.voidHandler(['key'])   → VoidCallback event handler
 LocalWidgetLibrary createChartWidgets(
-  BuildContext Function() contextGetter,
   void Function(String event, Map<String, Object> args) onEvent,
 ) {
   return LocalWidgetLibrary({
     // ── LineChartWidget ────────────────────────────────────────────────────
-    'LineChartWidget': (context, source, node) {
-      final rawPoints = source.isList(node, 'points')
-          ? source.asList(node, 'points')
-          : const <Object>[];
+    'LineChartWidget': (context, source) {
+      final color = Color(source.v<int>(['color']) ?? 0xFF6C63FF);
+      final count = source.isList(['points']) ? source.length(['points']) : 0;
 
-      final color = Color(
-        source.isInt(node, 'color') ? source.asInt(node, 'color') : 0xFF6C63FF,
-      );
-
-      final spots = rawPoints.indexed.map((entry) {
-        final i = entry.$1;
-        final pt = entry.$2 is Map ? entry.$2 as Map : {};
-        final x = _toDouble(pt['x']) ?? i.toDouble();
-        final y = _toDouble(pt['y']) ?? 0.0;
+      // Build x → label map so getTitlesWidget can show W1, W2 etc.
+      final xToLabel = <double, String>{};
+      final spots = List.generate(count, (i) {
+        final x = source.v<double>(['points', i, 'x']) ??
+            source.v<int>(['points', i, 'x'])?.toDouble() ??
+            i.toDouble();
+        final y = source.v<double>(['points', i, 'y']) ??
+            source.v<int>(['points', i, 'y'])?.toDouble() ??
+            0.0;
+        final label = source.v<String>(['points', i, 'label']) ?? '';
+        xToLabel[x] = label;
         return FlSpot(x, y);
-      }).toList();
+      });
 
-      final onTapCallback = node.containsKey('onPointTapped')
-          ? () => onEvent('onPointTapped', {})
-          : null;
+      final onTap = source.voidHandler(['onPointTapped']);
 
       return GestureDetector(
-        onTap: onTapCallback,
+        onTap: onTap,
         child: LineChart(
           LineChartData(
             gridData: FlGridData(
               show: true,
               drawVerticalLine: false,
-              getDrawingHorizontalLine: (_) => FlLine(
+              getDrawingHorizontalLine: (_) => const FlLine(
                 color: Colors.white12,
                 strokeWidth: 1,
               ),
             ),
-            titlesData: const FlTitlesData(
-              leftTitles: AxisTitles(
+            titlesData: FlTitlesData(
+              leftTitles: const AxisTitles(
                 sideTitles: SideTitles(showTitles: true, reservedSize: 36),
               ),
               bottomTitles: AxisTitles(
-                sideTitles: SideTitles(showTitles: true, reservedSize: 28),
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 28,
+                  getTitlesWidget: (value, meta) {
+                    final label = xToLabel[value];
+                    if (label == null) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                            color: Colors.white54, fontSize: 11),
+                      ),
+                    );
+                  },
+                ),
               ),
-              topTitles:
-                  AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles:
-                  AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false)),
+              rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false)),
             ),
             borderData: FlBorderData(show: false),
             lineBarsData: [
@@ -74,7 +96,14 @@ LocalWidgetLibrary createChartWidgets(
                 ),
                 belowBarData: BarAreaData(
                   show: true,
-                  color: color.withOpacity(0.15),
+                  gradient: LinearGradient(
+                    colors: [
+                      color.withValues(alpha: 0.28),
+                      color.withValues(alpha: 0.04),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
                 ),
               ),
             ],
@@ -90,20 +119,16 @@ LocalWidgetLibrary createChartWidgets(
       );
     },
 
+
     // ── BarChartWidget ─────────────────────────────────────────────────────
-    'BarChartWidget': (context, source, node) {
-      final rawPoints = source.isList(node, 'points')
-          ? source.asList(node, 'points')
-          : const <Object>[];
+    'BarChartWidget': (context, source) {
+      final color = Color(source.v<int>(['color']) ?? 0xFF4CAF50);
+      final count = source.isList(['points']) ? source.length(['points']) : 0;
 
-      final color = Color(
-        source.isInt(node, 'color') ? source.asInt(node, 'color') : 0xFF4CAF50,
-      );
-
-      final groups = rawPoints.indexed.map((entry) {
-        final i = entry.$1;
-        final pt = entry.$2 is Map ? entry.$2 as Map : {};
-        final y = _toDouble(pt['y']) ?? 0.0;
+      final groups = List.generate(count, (i) {
+        final y = source.v<double>(['points', i, 'y']) ??
+            source.v<int>(['points', i, 'y'])?.toDouble() ??
+            0.0;
         return BarChartGroupData(
           x: i,
           barRods: [
@@ -116,26 +141,26 @@ LocalWidgetLibrary createChartWidgets(
               backDrawRodData: BackgroundBarChartRodData(
                 show: true,
                 toY: 100,
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
               ),
             ),
           ],
         );
-      }).toList();
+      });
 
-      final labels = rawPoints.map((pt) {
-        final map = pt is Map ? pt : {};
-        return map['label']?.toString() ?? '';
-      }).toList();
+      final labels = List.generate(count, (i) {
+        return source.v<String>(['points', i, 'label']) ?? '';
+      });
 
-      final onTapCallback = node.containsKey('onBarTapped')
-          ? (FlTouchEvent event, BarTouchResponse? response) {
-              if (response?.spot != null) {
-                onEvent('onBarTapped',
-                    {'index': response!.spot!.touchedBarGroupIndex});
-              }
-            }
-          : null;
+      final onBarTapped =
+          source.handler<void Function(FlTouchEvent, BarTouchResponse?)>(
+        ['onBarTapped'],
+        (trigger) => (FlTouchEvent event, BarTouchResponse? response) {
+          if (response?.spot != null) {
+            trigger({'index': response!.spot!.touchedBarGroupIndex});
+          }
+        },
+      );
 
       return BarChart(
         BarChartData(
@@ -143,7 +168,7 @@ LocalWidgetLibrary createChartWidgets(
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            getDrawingHorizontalLine: (_) => FlLine(
+            getDrawingHorizontalLine: (_) => const FlLine(
               color: Colors.white12,
               strokeWidth: 1,
             ),
@@ -169,16 +194,16 @@ LocalWidgetLibrary createChartWidgets(
             leftTitles: const AxisTitles(
               sideTitles: SideTitles(showTitles: true, reservedSize: 36),
             ),
-            topTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles:
-                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false)),
           ),
           borderData: FlBorderData(show: false),
           barGroups: groups,
           barTouchData: BarTouchData(
-            enabled: true,
-            touchCallback: onTapCallback,
+            enabled: onBarTapped != null,
+            touchCallback: onBarTapped,
             touchTooltipData: BarTouchTooltipData(
               getTooltipColor: (_) => const Color(0xFF1A1B2E),
             ),
@@ -190,13 +215,9 @@ LocalWidgetLibrary createChartWidgets(
     },
 
     // ── ChartHeader ────────────────────────────────────────────────────────
-    'ChartHeader': (context, source, node) {
-      final title = source.isString(node, 'title')
-          ? source.asString(node, 'title')
-          : 'Chart';
-      final subtitle = source.isString(node, 'subtitle')
-          ? source.asString(node, 'subtitle')
-          : '';
+    'ChartHeader': (context, source) {
+      final title = source.v<String>(['title']) ?? 'Chart';
+      final subtitle = source.v<String>(['subtitle']) ?? '';
 
       return Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
@@ -236,72 +257,7 @@ LocalWidgetLibrary createChartWidgets(
     },
 
     // ── ChartSwitchButton ──────────────────────────────────────────────────
-    'ChartSwitchButton': (context, source, node) {
-      final label = source.isString(node, 'label')
-          ? source.asString(node, 'label')
-          : 'SWITCH';
-      final nextView = source.isString(node, 'nextView')
-          ? source.asString(node, 'nextView')
-          : 'LineChartView';
-
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        child: SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF6C63FF), Color(0xFF9C88FF)],
-              ),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF6C63FF).withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () => onEvent('switchView', {'view': nextView}),
-                child: Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.swap_horiz_rounded,
-                          color: Colors.white, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Switch to $label Chart',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    },
+    // Navigation is now handled by the AppBar dropdown — this is hidden.
+    'ChartSwitchButton': (context, source) => const SizedBox.shrink(),
   });
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-double? _toDouble(Object? value) {
-  if (value == null) return null;
-  if (value is double) return value;
-  if (value is int) return value.toDouble();
-  if (value is String) return double.tryParse(value);
-  return null;
 }
