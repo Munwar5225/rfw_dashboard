@@ -19,6 +19,7 @@ LocalWidgetLibrary createChartWidgets(
     // ── LineChartWidget ────────────────────────────────────────────────────
     'LineChartWidget': (context, source) {
       final color = Color(source.v<int>(['color']) ?? 0xFF6C63FF);
+      final showYAxis = source.v<bool>(['showYAxis']) ?? true;
       final count = source.isList(['points']) ? source.length(['points']) : 0;
 
       // Build x → label map so getTitlesWidget can show W1, W2 etc.
@@ -50,8 +51,11 @@ LocalWidgetLibrary createChartWidgets(
               ),
             ),
             titlesData: FlTitlesData(
-              leftTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: true, reservedSize: 36),
+              leftTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: showYAxis,
+                  reservedSize: showYAxis ? 36 : 0,
+                ),
               ),
               bottomTitles: AxisTitles(
                 sideTitles: SideTitles(
@@ -123,6 +127,7 @@ LocalWidgetLibrary createChartWidgets(
     // ── BarChartWidget ─────────────────────────────────────────────────────
     'BarChartWidget': (context, source) {
       final color = Color(source.v<int>(['color']) ?? 0xFF4CAF50);
+      final showYAxis = source.v<bool>(['showYAxis']) ?? true;
       final count = source.isList(['points']) ? source.length(['points']) : 0;
 
       final groups = List.generate(count, (i) {
@@ -191,8 +196,11 @@ LocalWidgetLibrary createChartWidgets(
                 },
               ),
             ),
-            leftTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: true, reservedSize: 36),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: showYAxis,
+                reservedSize: showYAxis ? 36 : 0,
+              ),
             ),
             topTitles: const AxisTitles(
                 sideTitles: SideTitles(showTitles: false)),
