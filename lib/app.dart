@@ -109,9 +109,22 @@ class _DashboardPageState extends State<DashboardPage>
       final rfwtxt    = results[0] as String;
       final chartData = results[1] as Map<String, Object>;
 
-      // Compute min / max / avg from points
-      final points  = (chartData['points'] as List).cast<Map<String, Object>>();
-      final yValues = points.map((p) => (p['y'] as num).toDouble()).toList();
+      // Compute min / max / avg from points.
+      // For combined views, aggregate y-values across ALL series.
+      final List<double> yValues;
+      if (chartData.containsKey('charts')) {
+        // Combined view — flatten y from every series
+        final allCharts = (chartData['charts'] as List)
+            .cast<Map<String, Object>>();
+        yValues = allCharts.expand((c) {
+          final pts = (c['points'] as List).cast<Map<String, Object>>();
+          return pts.map((p) => (p['y'] as num).toDouble());
+        }).toList();
+      } else {
+        // Single-chart view — original behaviour
+        final points = (chartData['points'] as List).cast<Map<String, Object>>();
+        yValues = points.map((p) => (p['y'] as num).toDouble()).toList();
+      }
       final cMin = yValues.isEmpty ? 0.0 : yValues.reduce(math.min);
       final cMax = yValues.isEmpty ? 0.0 : yValues.reduce(math.max);
       final cAvg = yValues.isEmpty
@@ -322,7 +335,9 @@ class _DashboardPageState extends State<DashboardPage>
                       Icon(
                         type == 'line'
                             ? Icons.show_chart_rounded
-                            : Icons.bar_chart_rounded,
+                            : type == 'combined'
+                                ? Icons.grid_view_rounded
+                                : Icons.bar_chart_rounded,
                         color:
                             active ? Colors.white : const Color(0xFF9A9AB0),
                         size: 15,

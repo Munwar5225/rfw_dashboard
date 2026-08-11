@@ -49,7 +49,13 @@ class ApiService {
   // ── Chart Data ───────────────────────────────────────────────────────────
 
   /// Fetches chart data for [viewName].
-  /// Returns a Map matching Flutter DynamicContent.updateAll() shape.
+  ///
+  /// Handles two response shapes from the backend:
+  ///   • Single-chart  → { title, subtitle, color, nextView, nextLabel, points[] }
+  ///   • Combined-chart→ { ..., charts[{ series, type, label, color, points[] }], points[] }
+  ///
+  /// Always returns a [Map] that includes both `points` (for stat cards) and
+  /// optionally `charts` (for RFW combined widget state access).
   static Future<Map<String, Object>> getChartData(String viewName) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/data/$viewName');
 
@@ -71,11 +77,13 @@ class ApiService {
       }
 
       final json = jsonDecode(res.body) as Map<String, dynamic>;
+
+      // ── Flat points[] — always present (stat card compat) ──────────────────
       final rawPoints = json['points'] as List<dynamic>;
       final points = rawPoints
           .map((p) => <String, Object>{
-                'x': (p['x'] as num).toDouble(),
-                'y': (p['y'] as num).toDouble(),
+                'x':     (p['x'] as num).toDouble(),
+                'y':     (p['y'] as num).toDouble(),
                 'label': p['label'] as String,
               })
           .toList();
@@ -89,10 +97,37 @@ class ApiService {
         'points':    points,
       };
 
-      AppLogger.api.d(
-        'Data parsed for "$viewName": '
-        '${points.length} points | title="${result['title']}"',
-      );
+      // ── charts[] — present for combined views only ─────────────────────────
+      if (json.containsKey('charts')) {
+        final rawCharts = json['charts'] as List<dynamic>;
+        final charts = rawCharts.map((c) {
+          final cPoints = (c['points'] as List<dynamic>)
+              .map((p) => <String, Object>{
+                    'x':     (p['x'] as num).toDouble(),
+                    'y':     (p['y'] as num).toDouble(),
+                    'label': p['label'] as String,
+                  })
+              .toList();
+          return <String, Object>{
+            'series': c['series'] as String,
+            'type':   c['type']   as String,
+            'label':  c['label']  as String,
+            'color':  (c['color'] as num).toInt(),
+            'points': cPoints,
+          };
+        }).toList();
+
+        result['charts'] = charts;
+        AppLogger.api.d(
+          'Combined chart "$viewName": ${charts.length} series | '
+          'title="${result['title']}"',
+        );
+      } else {
+        AppLogger.api.d(
+          'Data parsed for "$viewName": '
+          '${points.length} points | title="${result['title']}"',
+        );
+      }
 
       return result;
     } catch (e, s) {
