@@ -40,6 +40,7 @@ class SingleValueBarWidget extends StatelessWidget {
     final double barRadius = (mergedConfig['barRadius'] as num?)?.toDouble() ?? 12.0;
     final bool showPercentage = (mergedConfig['showPercentage'] as bool?) ?? true;
     final bool showValue = (mergedConfig['showValue'] as bool?) ?? true;
+    final bool showLabels = (mergedConfig['showLabels'] as bool?) ?? true;
     
     final bool isClickable = (mergedConfig['isClickable'] as bool?) ?? false;
     final String? description = mergedConfig['description']?.toString();
@@ -136,7 +137,7 @@ class SingleValueBarWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (point.key != null) ...[
+                if (showLabels && point.key != null) ...[
                   Text(point.key!, style: const TextStyle(color: Color(0xFFEFEFF4))),
                   const SizedBox(height: 8),
                 ],
@@ -155,13 +156,13 @@ class SingleValueBarWidget extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 bar,
-                if (point.key != null || showValue || description != null) ...[
+                if ((showLabels && point.key != null) || showValue || description != null) ...[
                   const SizedBox(width: 8),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (point.key != null) Text(point.key!, style: const TextStyle(color: Color(0xFFEFEFF4))),
+                      if (showLabels && point.key != null) Text(point.key!, style: const TextStyle(color: Color(0xFFEFEFF4))),
                       if (showValue) Text(value.toStringAsFixed(1), style: const TextStyle(color: Color(0xFF9A9AB0))),
                       if (description != null) Text(description, style: const TextStyle(color: Color(0xFF9A9AB0), fontSize: 11, fontStyle: FontStyle.italic)),
                     ],

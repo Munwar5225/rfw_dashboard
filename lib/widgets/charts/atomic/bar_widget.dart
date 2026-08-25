@@ -169,6 +169,7 @@ class BarWidget extends StatelessWidget {
   Widget _buildHorizontalBarChart(Map<String, dynamic> mergedConfig) {
     final points = series.points ?? [];
     final String? overallColor = mergedConfig['color']?.toString();
+    final bool showLabels = (mergedConfig['showLabels'] as bool?) ?? true;
     
     return Container(
       color: const Color(0xFF1A1B2E),
@@ -188,15 +189,17 @@ class BarWidget extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12.0),
             child: Row(
               children: [
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    point.key ?? '',
-                    style: const TextStyle(color: Color(0xFFEFEFF4), fontSize: 12),
-                    textAlign: TextAlign.left,
+                if (showLabels) ...[
+                  Expanded(
+                    flex: 2,
+                    child: Text(
+                      point.key ?? '',
+                      style: const TextStyle(color: Color(0xFFEFEFF4), fontSize: 12),
+                      textAlign: TextAlign.left,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
+                  const SizedBox(width: 8),
+                ],
                 Expanded(
                   flex: 5,
                   child: CustomPaint(
