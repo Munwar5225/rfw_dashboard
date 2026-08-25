@@ -80,7 +80,7 @@ class ModeSelectionPage extends StatelessWidget {
                     'Widget layout is served by the backend as rfwtxt and rendered via Remote Flutter Widgets.',
                 gradientColors: const [Color(0xFF6C63FF), Color(0xFF9C88FF)],
                 glowColor: const Color(0xFF6C63FF),
-                onTap: () => Navigator.pushReplacement(
+                onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => const DashboardPage(),
@@ -97,7 +97,7 @@ class ModeSelectionPage extends StatelessWidget {
                     'All chart properties (color, size, labels, curve, dots, etc.) are configured through the backend JSON — no RFW involved.',
                 gradientColors: const [Color(0xFF03DAC6), Color(0xFF00897B)],
                 glowColor: const Color(0xFF03DAC6),
-                onTap: () => Navigator.pushReplacement(
+                onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => const ConfiguredDashboardPage(),
@@ -114,7 +114,7 @@ class ModeSelectionPage extends StatelessWidget {
                     'All chart types fully dynamic — pie, bar, stack, line, tier, step, dual-axis and more. Every property configured from the backend.',
                 gradientColors: const [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
                 glowColor: const Color(0xFFFF6B6B),
-                onTap: () => Navigator.pushReplacement(
+                onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => const ConfiguredDashboardPageV2(),
