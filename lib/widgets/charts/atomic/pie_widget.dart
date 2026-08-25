@@ -61,8 +61,9 @@ class _PieWidgetState extends State<PieWidget> {
     return Container(
       color: const Color(0xFF1A1B2E),
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
             height: widget.isHalf ? 150 : 300,
@@ -112,6 +113,7 @@ class _PieWidgetState extends State<PieWidget> {
             ),
           ]
         ],
+      ),
       ),
     );
   }
