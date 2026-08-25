@@ -109,7 +109,7 @@ class ModeSelectionPage extends StatelessWidget {
 
               _ModeCard(
                 icon: Icons.auto_awesome_rounded,
-                label: 'All 16 Chart Types (V2)',
+                label: 'All Chart Types ',
                 description:
                     'All chart types fully dynamic — pie, bar, stack, line, tier, step, dual-axis and more. Every property configured from the backend.',
                 gradientColors: const [Color(0xFFFF6B6B), Color(0xFFFF8E53)],

@@ -53,7 +53,11 @@ class StackBarWidget extends StatelessWidget {
               ],
             ),
           Expanded(
-            child: BarChart(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final double maxAllowedWidth = points.isEmpty ? barWidth : (constraints.maxWidth / points.length) * 0.6;
+                final double actualBarWidth = barWidth > maxAllowedWidth ? maxAllowedWidth : barWidth;
+                return BarChart(
               BarChartData(
                 gridData: FlGridData(show: true, drawVerticalLine: false),
                 titlesData: FlTitlesData(
@@ -84,6 +88,20 @@ class StackBarWidget extends StatelessWidget {
                     ),
                   ),
                 ),
+                barTouchData: BarTouchData(
+                  enabled: false,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (group) => Colors.transparent,
+                    tooltipPadding: EdgeInsets.zero,
+                    tooltipMargin: 2,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        rod.toY.toStringAsFixed(1),
+                        const TextStyle(color: Color(0xFFEFEFF4), fontSize: 10, fontWeight: FontWeight.bold),
+                      );
+                    },
+                  ),
+                ),
                 borderData: FlBorderData(show: false),
                 barGroups: List.generate(points.length, (index) {
                   final point = points[index];
@@ -100,7 +118,7 @@ class StackBarWidget extends StatelessWidget {
                     barRods: [
                       BarChartRodData(
                         toY: val1 + val2 + val3,
-                        width: barWidth,
+                        width: actualBarWidth,
                         borderRadius: BorderRadius.zero,
                         rodStackItems: [
                           BarChartRodStackItem(0, val1, col1),
@@ -113,6 +131,8 @@ class StackBarWidget extends StatelessWidget {
                 }),
               ),
               swapAnimationDuration: const Duration(milliseconds: 800),
+            );
+            },
             ),
           ),
           if (showLegend) ...[

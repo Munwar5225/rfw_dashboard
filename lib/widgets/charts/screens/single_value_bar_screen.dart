@@ -19,19 +19,7 @@ class SingleValueBarScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(config.title, style: const TextStyle(color: Color(0xFFEFEFF4), fontSize: 18, fontWeight: FontWeight.bold)),
-              if (config.subtitle.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(config.subtitle, style: const TextStyle(color: Color(0xFF9A9AB0), fontSize: 14)),
-              ]
-            ],
-          ),
-        ),
+        
         Expanded(
           child: Center(
             child: Padding(

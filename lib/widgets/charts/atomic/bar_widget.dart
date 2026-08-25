@@ -29,7 +29,7 @@ class BarWidget extends StatelessWidget {
   }
 
   Widget _buildVerticalBarChart() {
-    final double barWidth = (visualConfig['barWidth'] as num?)?.toDouble() ?? 18.0;
+    final double defaultBarWidth = (visualConfig['barWidth'] as num?)?.toDouble() ?? 18.0;
     final double barRadius = (visualConfig['barRadius'] as num?)?.toDouble() ?? 6.0;
     final bool showGrid = (visualConfig['showGrid'] as bool?) ?? true;
     final bool showTarget = (visualConfig['showTarget'] as bool?) ?? false;
@@ -39,8 +39,13 @@ class BarWidget extends StatelessWidget {
 
     return Container(
       color: const Color(0xFF1A1B2E),
-      padding: const EdgeInsets.all(16.0),
-      child: BarChart(
+      padding: const EdgeInsets.all(8.0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final double maxAllowedWidth = points.isEmpty ? defaultBarWidth : (constraints.maxWidth / points.length) * 0.6;
+          final double barWidth = defaultBarWidth > maxAllowedWidth ? maxAllowedWidth : defaultBarWidth;
+          
+          return BarChart(
         BarChartData(
           gridData: FlGridData(show: showGrid, drawVerticalLine: false),
           titlesData: FlTitlesData(
@@ -66,6 +71,20 @@ class BarWidget extends StatelessWidget {
               ),
             ),
           ),
+          barTouchData: BarTouchData(
+            enabled: false,
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (group) => Colors.transparent,
+              tooltipPadding: EdgeInsets.zero,
+              tooltipMargin: 2,
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                return BarTooltipItem(
+                  rod.toY.toStringAsFixed(1),
+                  TextStyle(color: rod.color ?? const Color(0xFFEFEFF4), fontSize: 10, fontWeight: FontWeight.bold),
+                );
+              },
+            ),
+          ),
           borderData: FlBorderData(show: false),
           barGroups: List.generate(points.length, (index) {
             final point = points[index];
@@ -89,6 +108,8 @@ class BarWidget extends StatelessWidget {
           }),
         ),
         swapAnimationDuration: const Duration(milliseconds: 800),
+      );
+      },
       ),
     );
   }
