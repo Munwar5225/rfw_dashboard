@@ -17,23 +17,72 @@ class BarWidget extends StatelessWidget {
     return Color(int.parse(h.length == 6 ? 'FF$h' : h, radix: 16));
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final String orientation = (visualConfig['orientation'] as String?) ?? 'vertical';
+  Map<String, dynamic> _getMergedConfig() {
+    final Map<String, dynamic> globalProps = visualConfig;
+    final graphsConfig = globalProps['graphs'] as Map<String, dynamic>?;
+    final Map<String, dynamic> graphOverrides = (graphsConfig?[series.seriesKey] as Map<String, dynamic>?) ?? {};
     
-    if (orientation == 'vertical') {
-      return _buildVerticalBarChart();
-    } else {
-      return _buildHorizontalBarChart();
-    }
+    return {
+      ...globalProps,
+      ...series.visualConfig,
+      ...graphOverrides,
+    };
   }
 
-  Widget _buildVerticalBarChart() {
-    final double defaultBarWidth = (visualConfig['barWidth'] as num?)?.toDouble() ?? 18.0;
-    final double barRadius = (visualConfig['barRadius'] as num?)?.toDouble() ?? 6.0;
-    final bool showGrid = (visualConfig['showGrid'] as bool?) ?? true;
-    final bool showTarget = (visualConfig['showTarget'] as bool?) ?? false;
-    final bool showValues = (visualConfig['showValues'] as bool?) ?? false;
+  @override
+  Widget build(BuildContext context) {
+    final mergedConfig = _getMergedConfig();
+    final String orientation = (mergedConfig['orientation'] as String?) ?? 'vertical';
+    final bool isClickable = (mergedConfig['isClickable'] as bool?) ?? false;
+    final String? description = mergedConfig['description']?.toString();
+    
+    Widget content;
+    if (orientation == 'vertical') {
+      content = _buildVerticalBarChart(mergedConfig);
+    } else {
+      content = _buildHorizontalBarChart(mergedConfig);
+    }
+
+    if (description != null) {
+      content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: content),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF9A9AB0), fontSize: 11, fontStyle: FontStyle.italic),
+          ),
+        ],
+      );
+    }
+
+    if (isClickable) {
+      return GestureDetector(
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${series.seriesLabel} clicked!'),
+              duration: const Duration(seconds: 1),
+              backgroundColor: const Color(0xFF6C63FF),
+            ),
+          );
+        },
+        child: content,
+      );
+    }
+
+    return content;
+  }
+
+  Widget _buildVerticalBarChart(Map<String, dynamic> mergedConfig) {
+    final double defaultBarWidth = (mergedConfig['barWidth'] as num?)?.toDouble() ?? 18.0;
+    final double barRadius = (mergedConfig['barRadius'] as num?)?.toDouble() ?? 6.0;
+    final bool showGrid = (mergedConfig['showGrid'] as bool?) ?? true;
+    final bool showTarget = (mergedConfig['showTarget'] as bool?) ?? false;
+    final bool showValues = (mergedConfig['showValues'] as bool?) ?? false;
+    final String? overallColor = mergedConfig['color']?.toString();
     
     final points = series.points ?? [];
 
@@ -88,13 +137,14 @@ class BarWidget extends StatelessWidget {
           borderData: FlBorderData(show: false),
           barGroups: List.generate(points.length, (index) {
             final point = points[index];
+            final colorHex = overallColor ?? point.color ?? '#6C63FF';
             return BarChartGroupData(
               x: index,
               showingTooltipIndicators: showValues ? [0] : [],
               barRods: [
                 BarChartRodData(
                   toY: point.value ?? 0,
-                  color: _hexColor(point.color ?? '#6C63FF'),
+                  color: _hexColor(colorHex),
                   width: barWidth,
                   borderRadius: BorderRadius.circular(barRadius),
                   backDrawRodData: showTarget ? BackgroundBarChartRodData(
@@ -114,8 +164,9 @@ class BarWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildHorizontalBarChart() {
+  Widget _buildHorizontalBarChart(Map<String, dynamic> mergedConfig) {
     final points = series.points ?? [];
+    final String? overallColor = mergedConfig['color']?.toString();
     
     return Container(
       color: const Color(0xFF1A1B2E),
@@ -124,11 +175,12 @@ class BarWidget extends StatelessWidget {
         itemCount: points.length,
         itemBuilder: (context, index) {
           final point = points[index];
-          final double barHeight = (visualConfig['barHeight'] as num?)?.toDouble() ?? 18.0;
-          final double barRadius = (visualConfig['barRadius'] as num?)?.toDouble() ?? 4.0;
+          final double barHeight = (mergedConfig['barHeight'] as num?)?.toDouble() ?? 18.0;
+          final double barRadius = (mergedConfig['barRadius'] as num?)?.toDouble() ?? 4.0;
           
           final val = point.percentage ?? point.value ?? 0;
           final target = 100.0;
+          final colorHex = overallColor ?? point.color ?? '#6C63FF';
           
           return Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
@@ -147,7 +199,7 @@ class BarWidget extends StatelessWidget {
                   flex: 5,
                   child: CustomPaint(
                     painter: HorizontalBarPainter(
-                      filledColor: _hexColor(point.color ?? '#6C63FF'),
+                      filledColor: _hexColor(colorHex),
                       emptyColor: _hexColor(point.targetColor ?? '#E0E0E0'),
                       value: val.toDouble(),
                       target: target,

@@ -26,19 +26,34 @@ class _PieWidgetState extends State<PieWidget> {
     return Color(int.parse(h.length == 6 ? 'FF$h' : h, radix: 16));
   }
 
+  Map<String, dynamic> _getMergedConfig() {
+    final Map<String, dynamic> globalProps = widget.visualConfig;
+    final graphsConfig = globalProps['graphs'] as Map<String, dynamic>?;
+    final Map<String, dynamic> graphOverrides = (graphsConfig?[widget.series.seriesKey] as Map<String, dynamic>?) ?? {};
+    
+    return {
+      ...globalProps,
+      ...widget.series.visualConfig, // Legacy support just in case
+      ...graphOverrides,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bool showCenterText = (widget.visualConfig['showCenterText'] as bool?) ?? true;
-    final bool showLegend = (widget.visualConfig['showLegend'] as bool?) ?? true;
+    final mergedConfig = _getMergedConfig();
     
-    // For half pies, we use a start degree of 180 (left edge), and it draws clockwise to 360 (right edge).
-    final double startAngle = widget.isHalf ? 180.0 : ((widget.visualConfig['startAngle'] as num?)?.toDouble() ?? 0.0);
+    final bool showCenterText = (mergedConfig['showCenterText'] as bool?) ?? true;
+    final bool showLegend = (mergedConfig['showLegend'] as bool?) ?? true;
+    final bool isClickable = (mergedConfig['isClickable'] as bool?) ?? false;
+    final String? description = mergedConfig['description']?.toString();
+    
+    final double startAngle = widget.isHalf ? 180.0 : ((mergedConfig['startAngle'] as num?)?.toDouble() ?? 0.0);
     
     final originalSections = widget.series.sections ?? [];
     double totalValue = originalSections.fold(0.0, (sum, sec) => sum + (sec.value ?? 0.0));
     if (totalValue == 0) totalValue = 1; // Prevent division by zero if all 0
 
-    return Container(
+    Widget content = Container(
       color: Colors.transparent, // Let parent handle background
       padding: const EdgeInsets.all(4.0),
       child: Column(
@@ -46,23 +61,17 @@ class _PieWidgetState extends State<PieWidget> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // Determine base size depending on if it's a half pie or full pie.
-                // A half pie only needs half the height.
                 final double availableWidth = constraints.maxWidth;
                 final double availableHeight = widget.isHalf ? constraints.maxHeight * 2 : constraints.maxHeight;
                 
                 final double minDim = availableHeight < availableWidth ? availableHeight : availableWidth;
                 final double baseSize = minDim.isInfinite ? 200.0 : minDim;
                 
-                // We compute the maximum allowed total radius (diameter = baseSize).
-                // Let's reserve a tiny margin, so max radius = baseSize / 2 * 0.95.
                 final double maxTotalRadius = (baseSize / 2.0) * 0.95;
 
-                // Read from config or use defaults
-                double cfgHole = (widget.visualConfig['holeRadius'] as num?)?.toDouble() ?? (maxTotalRadius * 0.7);
-                double cfgRadius = (widget.visualConfig['radius'] as num?)?.toDouble() ?? (maxTotalRadius * 0.3);
+                double cfgHole = (mergedConfig['holeRadius'] as num?)?.toDouble() ?? (maxTotalRadius * 0.7);
+                double cfgRadius = (mergedConfig['radius'] as num?)?.toDouble() ?? (maxTotalRadius * 0.3);
 
-                // If the sum exceeds our available space, proportionally scale them down!
                 if (cfgHole + cfgRadius > maxTotalRadius) {
                   final scale = maxTotalRadius / (cfgHole + cfgRadius);
                   cfgHole *= scale;
@@ -74,23 +83,20 @@ class _PieWidgetState extends State<PieWidget> {
 
                 final List<PieChartSectionData> pieSections = originalSections.map((section) {
                   final color = _hexColor(section.color ?? '#6C63FF');
-                  final showValues = (widget.visualConfig['showValues'] as bool?) ?? false;
+                  final showValues = (mergedConfig['showValues'] as bool?) ?? false;
                   
                   return PieChartSectionData(
                     value: section.value ?? 0.0,
                     color: color,
-                    // Use just the value if it's too cramped, or omit string
                     title: showValues ? section.value?.toStringAsFixed(0) ?? '' : '',
                     radius: radius,
                     titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFEFEFF4)),
                   );
                 }).toList();
 
-                // If it's a half pie, we inject a dummy section that takes exactly the total value 
-                // (so it takes up the entire bottom 180 degrees) and make it transparent!
                 if (widget.isHalf) {
                   pieSections.add(PieChartSectionData(
-                    value: totalValue, // 50% of the entire pie
+                    value: totalValue,
                     color: Colors.transparent,
                     title: '',
                     radius: radius,
@@ -108,8 +114,6 @@ class _PieWidgetState extends State<PieWidget> {
                   swapAnimationCurve: Curves.easeInOut,
                 );
 
-                // If half pie, we use an OverflowBox so the bottom half of the circle
-                // just bleeds out invisibly, keeping the top half centered in the available space.
                 if (widget.isHalf) {
                   chart = Align(
                     alignment: Alignment.topCenter,
@@ -122,9 +126,7 @@ class _PieWidgetState extends State<PieWidget> {
                   );
                 }
 
-                final String? finalCenterText = widget.centerText ?? 
-                                                widget.series.visualConfig['centerText']?.toString() ?? 
-                                                widget.visualConfig['centerText']?.toString();
+                final String? finalCenterText = widget.centerText ?? mergedConfig['centerText']?.toString();
 
                 return Stack(
                   alignment: widget.isHalf ? Alignment.bottomCenter : Alignment.center,
@@ -174,9 +176,34 @@ class _PieWidgetState extends State<PieWidget> {
                 );
               }).toList(),
             ),
-          ]
+          ],
+          if (description != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF9A9AB0), fontSize: 11, fontStyle: FontStyle.italic),
+            ),
+          ],
         ],
       ),
     );
+
+    if (isClickable) {
+      return GestureDetector(
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${widget.series.seriesLabel} clicked!'),
+              duration: const Duration(seconds: 1),
+              backgroundColor: const Color(0xFF6C63FF),
+            ),
+          );
+        },
+        child: content,
+      );
+    }
+    
+    return content;
   }
 }
