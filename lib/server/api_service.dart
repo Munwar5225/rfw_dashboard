@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import '../models/chart_config.dart';
+import '../models/chart_config_v2.dart';
 import '../utils/app_logger.dart';
 
 /// Replaces MockServer — fetches real data from Railway backend.
@@ -171,6 +173,85 @@ class ApiService {
       stopwatch.stop();
       AppLogger.api.e(
         'GET /views failed after ${stopwatch.elapsedMilliseconds}ms',
+        error: e,
+        stackTrace: s,
+      );
+      rethrow;
+    }
+  }
+
+  // ── Configured Chart Data ────────────────────────────────────────────────
+
+  /// Fetches chart data + all visual config from GET /config-data/:viewName.
+  /// Used exclusively by the Configured Charts mode — RFW mode is unaffected.
+  static Future<ChartConfig> getConfigData(String viewName) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/config-data/$viewName');
+
+    AppLogger.api.i('→ GET $uri');
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      final res = await http.get(uri);
+      stopwatch.stop();
+
+      AppLogger.api.i(
+        '← ${res.statusCode} /config-data/$viewName  '
+        '(${stopwatch.elapsedMilliseconds}ms | ${res.bodyBytes.length}B)',
+      );
+
+      if (res.statusCode != 200) {
+        AppLogger.api.e('Config-data load failed: ${res.statusCode} ${res.body}');
+        throw Exception('Failed to load config-data "$viewName": ${res.body}');
+      }
+
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      AppLogger.api.d('Config-data parsed for "$viewName": chartType=${json['chartType']}');
+      return ChartConfig.fromJson(json);
+    } catch (e, s) {
+      stopwatch.stop();
+      AppLogger.api.e(
+        'GET /config-data/$viewName failed after ${stopwatch.elapsedMilliseconds}ms',
+        error: e,
+        stackTrace: s,
+      );
+      rethrow;
+    }
+  }
+
+  // ── Configured Chart Data V2 (all 16 chart types) ────────────────────────
+
+  /// Fetches full chart config + data from GET /config-data/v2/:viewName.
+  /// Returns [ChartConfigV2] which covers all 16 chart types.
+  static Future<ChartConfigV2> getConfigDataV2(String viewName) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/config-data/v2/$viewName');
+
+    AppLogger.api.i('→ GET $uri');
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      final res = await http.get(uri);
+      stopwatch.stop();
+
+      AppLogger.api.i(
+        '← ${res.statusCode} /config-data/v2/$viewName  '
+        '(${stopwatch.elapsedMilliseconds}ms | ${res.bodyBytes.length}B)',
+      );
+
+      if (res.statusCode != 200) {
+        AppLogger.api.e('V2 load failed: ${res.statusCode} ${res.body}');
+        throw Exception('Failed to load config-data/v2 "$viewName": ${res.body}');
+      }
+
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      AppLogger.api.d(
+        'V2 parsed "$viewName": chartType=${json['chartType']} '
+        'tabs=${(json['tabs'] as List?)?.length ?? 0}',
+      );
+      return ChartConfigV2.fromJson(json);
+    } catch (e, s) {
+      stopwatch.stop();
+      AppLogger.api.e(
+        'GET /config-data/v2/$viewName failed after ${stopwatch.elapsedMilliseconds}ms',
         error: e,
         stackTrace: s,
       );

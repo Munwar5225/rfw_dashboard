@@ -1,41 +1,30 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
-import 'package:rfw/formats.dart'
-    show parseLibraryFile, encodeLibraryBlob, decodeLibraryBlob;
-import 'package:rfw/rfw.dart';
 
-import 'server/api_service.dart';
-import 'theme/app_theme.dart';
-import 'utils/app_logger.dart';
-import 'widgets/chart_widgets.dart';
-import 'pages/mode_selection_page.dart';
+import '../models/chart_config.dart';
+import '../server/api_service.dart';
+import '../utils/app_logger.dart';
+import '../widgets/dynamic_chart_widgets.dart';
 
-class RfwDashboardApp extends StatelessWidget {
-  const RfwDashboardApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'RFW Dashboard',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      home: const ModeSelectionPage(),
-    );
-  }
-}
-
-class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+/// Dashboard page for the "Configured Charts" mode.
+///
+/// Mirrors the existing [DashboardPage] structure but:
+/// - Calls [ApiService.getConfigData] instead of [ApiService.getWidgetDescription]
+///   + [ApiService.getChartData].
+/// - Renders [ChartRenderer] (pure Flutter) instead of [RemoteWidget].
+/// - No RFW imports — completely independent.
+class ConfiguredDashboardPage extends StatefulWidget {
+  const ConfiguredDashboardPage({super.key});
 
   @override
-  State<DashboardPage> createState() => _DashboardPageState();
+  State<ConfiguredDashboardPage> createState() =>
+      _ConfiguredDashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage>
+class _ConfiguredDashboardPageState extends State<ConfiguredDashboardPage>
     with SingleTickerProviderStateMixin {
-  late final Runtime _runtime;
-  late final DynamicContent _data;
-
+  ChartConfig? _config;
   String _currentView = 'LineChartView';
   bool _isLoading = false;
   bool _isInitialized = false;
@@ -50,10 +39,6 @@ class _DashboardPageState extends State<DashboardPage>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
-  static const _remoteLib = LibraryName(<String>['remote']);
-  static const _coreLib   = LibraryName(<String>['core']);
-  static const _chartsLib = LibraryName(<String>['charts']);
-
   @override
   void initState() {
     super.initState();
@@ -67,12 +52,6 @@ class _DashboardPageState extends State<DashboardPage>
       curve: Curves.easeIn,
     );
 
-    _runtime = Runtime();
-    _data    = DynamicContent();
-
-    _runtime.update(_coreLib, createCoreWidgets());
-    _runtime.update(_chartsLib, createChartWidgets(_handleEvent));
-
     _fetchViewsAndLoad();
   }
 
@@ -80,9 +59,12 @@ class _DashboardPageState extends State<DashboardPage>
     try {
       final views = await ApiService.getViews();
       if (mounted) setState(() => _views = views);
-      AppLogger.app.i('Fetched ${views.length} views from API');
+      if (views.isNotEmpty) {
+        _currentView = views.first['view_name'] as String;
+      }
+      AppLogger.app.i('Configured mode: fetched ${views.length} views');
     } catch (e) {
-      AppLogger.app.w('Could not fetch views list: $e');
+      AppLogger.app.w('Configured mode: could not fetch views list: $e');
     }
     _loadView(_currentView, animate: false);
   }
@@ -93,39 +75,27 @@ class _DashboardPageState extends State<DashboardPage>
     super.dispose();
   }
 
-  // ── Data Loading ──────────────────────────────────────────────────────────
+  // ── Data Loading ────────────────────────────────────────────────────────────
 
   Future<void> _loadView(String viewName, {bool animate = true}) async {
-    AppLogger.app.i('Loading view: $viewName');
+    AppLogger.app.i('Configured mode: loading view $viewName');
     setState(() => _isLoading = true);
 
     if (animate) await _fadeController.reverse();
 
     try {
-      final results = await Future.wait([
-        ApiService.getWidgetDescription(viewName),
-        ApiService.getChartData(viewName),
-      ]);
+      final config = await ApiService.getConfigData(viewName);
 
-      final rfwtxt    = results[0] as String;
-      final chartData = results[1] as Map<String, Object>;
-
-      // Compute min / max / avg from points.
-      // For combined views, aggregate y-values across ALL series.
+      // Aggregate y-values for stat cards
       final List<double> yValues;
-      if (chartData.containsKey('charts')) {
-        // Combined view — flatten y from every series
-        final allCharts = (chartData['charts'] as List)
-            .cast<Map<String, Object>>();
-        yValues = allCharts.expand((c) {
-          final pts = (c['points'] as List).cast<Map<String, Object>>();
-          return pts.map((p) => (p['y'] as num).toDouble());
-        }).toList();
+      if (config.charts != null && config.charts!.isNotEmpty) {
+        yValues = config.charts!
+            .expand((s) => s.points.map((p) => p.y))
+            .toList();
       } else {
-        // Single-chart view — original behaviour
-        final points = (chartData['points'] as List).cast<Map<String, Object>>();
-        yValues = points.map((p) => (p['y'] as num).toDouble()).toList();
+        yValues = config.points.map((p) => p.y).toList();
       }
+
       final cMin = yValues.isEmpty ? 0.0 : yValues.reduce(math.min);
       final cMax = yValues.isEmpty ? 0.0 : yValues.reduce(math.max);
       final cAvg = yValues.isEmpty
@@ -134,22 +104,22 @@ class _DashboardPageState extends State<DashboardPage>
 
       if (mounted) {
         setState(() {
-          _runtime.update(
-            _remoteLib,
-            decodeLibraryBlob(encodeLibraryBlob(parseLibraryFile(rfwtxt))),
-          );
-          _data.updateAll(chartData);
-          _currentView = viewName;
-          _statMin = cMin;
-          _statMax = cMax;
-          _statAvg = cAvg;
-          _isLoading   = false;
+          _config        = config;
+          _currentView   = viewName;
+          _statMin       = cMin;
+          _statMax       = cMax;
+          _statAvg       = cAvg;
+          _isLoading     = false;
           _isInitialized = true;
         });
-        AppLogger.rfw.i('Runtime + data updated for: $viewName');
+        AppLogger.app.i('Configured mode: view "$viewName" loaded');
       }
     } catch (e, s) {
-      AppLogger.app.e('Failed to load view: $viewName', error: e, stackTrace: s);
+      AppLogger.app.e(
+        'Configured mode: failed to load "$viewName"',
+        error: e,
+        stackTrace: s,
+      );
       if (mounted) {
         setState(() => _isLoading = false);
         _showSnackBar('Failed to load: $e');
@@ -160,12 +130,8 @@ class _DashboardPageState extends State<DashboardPage>
   }
 
   void _handleEvent(String eventName, Map<String, Object> args) {
-    AppLogger.rfw.d('RFW event: $eventName  args: $args');
+    AppLogger.app.d('Configured chart event: $eventName  args: $args');
     switch (eventName) {
-      case 'switchView':
-        final next = args['view'] as String? ?? 'LineChartView';
-        AppLogger.app.i('Switching → $next');
-        _loadView(next);
       case 'onPointTapped':
         _showSnackBar('📍 Point tapped!');
       case 'onBarTapped':
@@ -182,7 +148,7 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  // ── Build ─────────────────────────────────────────────────────────────────
+  // ── Build ───────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +158,7 @@ class _DashboardPageState extends State<DashboardPage>
       body: _isInitialized
           ? _buildBody()
           : const Center(
-              child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
+              child: CircularProgressIndicator(color: Color(0xFF03DAC6)),
             ),
     );
   }
@@ -207,22 +173,21 @@ class _DashboardPageState extends State<DashboardPage>
             height: 32,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF6C63FF), Color(0xFF03DAC6)],
+                colors: [Color(0xFF03DAC6), Color(0xFF6C63FF)],
               ),
               borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                  color: const Color(0xFF03DAC6).withValues(alpha: 0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: const Icon(Icons.bar_chart_rounded,
-                color: Colors.white, size: 20),
+            child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
           ),
           const SizedBox(width: 10),
-          const Text('RFW Dashboard'),
+          const Text('Configured Charts'),
         ],
       ),
       actions: [
@@ -233,7 +198,7 @@ class _DashboardPageState extends State<DashboardPage>
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Color(0xFF6C63FF)),
+                      strokeWidth: 2, color: Color(0xFF03DAC6)),
                 )
               : const Icon(Icons.cloud_done_rounded,
                   color: Color(0xFF03DAC6), size: 22),
@@ -248,30 +213,27 @@ class _DashboardPageState extends State<DashboardPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Chart Selector Chips ──────────────────────────────────────────
+          // ── Chart Selector Chips ────────────────────────────────────────────
           if (_views.isNotEmpty) _buildChipSelector(),
 
-          // ── Stats Row ────────────────────────────────────────────────────
+          // ── Stats Row ──────────────────────────────────────────────────────
           _buildStatCards(),
 
           const SizedBox(height: 8),
 
-          // ── Remote Chart Widget ──────────────────────────────────────────
+          // ── Configured Chart Widget ────────────────────────────────────────
           FadeTransition(
             opacity: _fadeAnimation,
             child: SizedBox(
-              height: 430,
-              child: RemoteWidget(
-                runtime: _runtime,
-                data: _data,
-                widget: FullyQualifiedWidgetName(_remoteLib, _currentView),
-                onEvent: (name, args) =>
-                    _handleEvent(name, Map<String, Object>.from(args)),
+              height: _config?.height ?? 430,
+              child: ChartRenderer(
+                config: _config!,
+                onEvent: _handleEvent,
               ),
             ),
           ),
 
-          // ── Footer ───────────────────────────────────────────────────────
+          // ── Footer ─────────────────────────────────────────────────────────
           _buildFooter(),
           const SizedBox(height: 20),
         ],
@@ -279,7 +241,7 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  // ── Chart selector chips ──────────────────────────────────────────────────
+  // ── Chart selector chips ────────────────────────────────────────────────────
 
   Widget _buildChipSelector() {
     return SizedBox(
@@ -303,7 +265,7 @@ class _DashboardPageState extends State<DashboardPage>
             decoration: BoxDecoration(
               gradient: active
                   ? const LinearGradient(
-                      colors: [Color(0xFF6C63FF), Color(0xFF9C88FF)],
+                      colors: [Color(0xFF03DAC6), Color(0xFF6C63FF)],
                     )
                   : null,
               color: active ? null : const Color(0xFF1A1B2E),
@@ -314,7 +276,7 @@ class _DashboardPageState extends State<DashboardPage>
               boxShadow: active
                   ? [
                       BoxShadow(
-                        color: const Color(0xFF6C63FF).withValues(alpha: 0.4),
+                        color: const Color(0xFF03DAC6).withValues(alpha: 0.4),
                         blurRadius: 10,
                         offset: const Offset(0, 3),
                       ),
@@ -339,8 +301,7 @@ class _DashboardPageState extends State<DashboardPage>
                             : type == 'combined'
                                 ? Icons.grid_view_rounded
                                 : Icons.bar_chart_rounded,
-                        color:
-                            active ? Colors.white : const Color(0xFF9A9AB0),
+                        color: active ? Colors.white : const Color(0xFF9A9AB0),
                         size: 15,
                       ),
                       const SizedBox(width: 6),
@@ -367,7 +328,7 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  // ── Stat cards ────────────────────────────────────────────────────────────
+  // ── Stat cards ──────────────────────────────────────────────────────────────
 
   Widget _buildStatCards() {
     return Padding(
@@ -426,7 +387,7 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  // ── Footer ────────────────────────────────────────────────────────────────
+  // ── Footer ──────────────────────────────────────────────────────────────────
 
   Widget _buildFooter() {
     return Padding(
@@ -434,14 +395,15 @@ class _DashboardPageState extends State<DashboardPage>
       child: Row(
         children: [
           Container(
-            width: 6, height: 6,
+            width: 6,
+            height: 6,
             decoration: const BoxDecoration(
               color: Color(0xFF03DAC6),
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 6),
-          const Text('Railway API',
+          const Text('Config API',
               style: TextStyle(color: Color(0xFF9A9AB0), fontSize: 11)),
           const Icon(Icons.arrow_right_alt_rounded,
               color: Color(0xFF9A9AB0), size: 14),
@@ -449,7 +411,7 @@ class _DashboardPageState extends State<DashboardPage>
             child: Text(
               _currentView,
               style: const TextStyle(
-                color: Color(0xFF6C63FF),
+                color: Color(0xFF03DAC6),
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -457,8 +419,7 @@ class _DashboardPageState extends State<DashboardPage>
             ),
           ),
           const Spacer(),
-          const Icon(Icons.wifi_rounded,
-              color: Color(0xFF03DAC6), size: 12),
+          const Icon(Icons.tune_rounded, color: Color(0xFF03DAC6), size: 12),
         ],
       ),
     );
