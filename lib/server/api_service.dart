@@ -16,7 +16,7 @@ class ApiService {
   static Future<String> getWidgetDescription(String viewName) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/widgets/$viewName');
 
-    AppLogger.api.i('→ GET $uri');
+    AppLogger.api.i('→ GET $uri\nRequest Body: null');
     final stopwatch = Stopwatch()..start();
 
     try {
@@ -25,7 +25,8 @@ class ApiService {
 
       AppLogger.api.i(
         '← ${res.statusCode} /widgets/$viewName  '
-        '(${stopwatch.elapsedMilliseconds}ms | ${res.bodyBytes.length}B)',
+        '(${stopwatch.elapsedMilliseconds}ms | ${res.bodyBytes.length}B)\n'
+        'Response Body: ${res.body}',
       );
 
       if (res.statusCode == 200) {
@@ -61,7 +62,7 @@ class ApiService {
   static Future<Map<String, Object>> getChartData(String viewName) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/data/$viewName');
 
-    AppLogger.api.i('→ GET $uri');
+    AppLogger.api.i('→ GET $uri\nRequest Body: null');
     final stopwatch = Stopwatch()..start();
 
     try {
@@ -70,7 +71,8 @@ class ApiService {
 
       AppLogger.api.i(
         '← ${res.statusCode} /data/$viewName  '
-        '(${stopwatch.elapsedMilliseconds}ms | ${res.bodyBytes.length}B)',
+        '(${stopwatch.elapsedMilliseconds}ms | ${res.bodyBytes.length}B)\n'
+        'Response Body: ${res.body}',
       );
 
       if (res.statusCode != 200) {
@@ -149,7 +151,7 @@ class ApiService {
   static Future<List<Map<String, dynamic>>> getViews() async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/views');
 
-    AppLogger.api.i('→ GET $uri');
+    AppLogger.api.i('→ GET $uri\nRequest Body: null');
     final stopwatch = Stopwatch()..start();
 
     try {
@@ -158,7 +160,8 @@ class ApiService {
 
       AppLogger.api.i(
         '← ${res.statusCode} /views  '
-        '(${stopwatch.elapsedMilliseconds}ms)',
+        '(${stopwatch.elapsedMilliseconds}ms)\n'
+        'Response Body: ${res.body}',
       );
 
       if (res.statusCode != 200) {
@@ -187,7 +190,7 @@ class ApiService {
   static Future<ChartConfig> getConfigData(String viewName) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/config-data/$viewName');
 
-    AppLogger.api.i('→ GET $uri');
+    AppLogger.api.i('→ GET $uri\nRequest Body: null');
     final stopwatch = Stopwatch()..start();
 
     try {
@@ -196,7 +199,8 @@ class ApiService {
 
       AppLogger.api.i(
         '← ${res.statusCode} /config-data/$viewName  '
-        '(${stopwatch.elapsedMilliseconds}ms | ${res.bodyBytes.length}B)',
+        '(${stopwatch.elapsedMilliseconds}ms | ${res.bodyBytes.length}B)\n'
+        'Response Body: ${res.body}',
       );
 
       if (res.statusCode != 200) {
@@ -225,7 +229,7 @@ class ApiService {
   static Future<ChartConfigV2> getConfigDataV2(String viewName) async {
     final uri = Uri.parse('${ApiConfig.baseUrl}/config-data/v2/$viewName');
 
-    AppLogger.api.i('→ GET $uri');
+    AppLogger.api.i('→ GET $uri\nRequest Body: null');
     final stopwatch = Stopwatch()..start();
 
     try {
@@ -234,7 +238,8 @@ class ApiService {
 
       AppLogger.api.i(
         '← ${res.statusCode} /config-data/v2/$viewName  '
-        '(${stopwatch.elapsedMilliseconds}ms | ${res.bodyBytes.length}B)',
+        '(${stopwatch.elapsedMilliseconds}ms | ${res.bodyBytes.length}B)\n'
+        'Response Body: ${res.body}',
       );
 
       if (res.statusCode != 200) {

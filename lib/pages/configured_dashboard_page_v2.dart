@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
 import '../models/chart_config_v2.dart';
-import '../widgets/charts/screens/chart_renderer_v2.dart';
-import '../theme.dart';
+import '../server/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/chart_renderer_v2.dart';
 
 class ConfiguredDashboardPageV2 extends StatelessWidget {
   const ConfiguredDashboardPageV2({super.key});
