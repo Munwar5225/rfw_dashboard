@@ -36,20 +36,36 @@ class _StepProgressWidgetState extends State<StepProgressWidget> with SingleTick
     super.dispose();
   }
 
+  Map<String, dynamic> _getMergedConfig() {
+    final Map<String, dynamic> globalProps = widget.visualConfig;
+    final graphsConfig = globalProps['graphs'] as Map<String, dynamic>?;
+    final Map<String, dynamic> graphOverrides = (graphsConfig?[widget.series.seriesKey] as Map<String, dynamic>?) ?? {};
+    
+    return {
+      ...globalProps,
+      ...widget.series.visualConfig,
+      ...graphOverrides,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bool isVertical = (widget.visualConfig['isVertical'] as bool?) ?? false;
-    final double stepSize = (widget.visualConfig['stepSize'] as num?)?.toDouble() ?? 28.0;
-    final double connectorWidth = (widget.visualConfig['connectorWidth'] as num?)?.toDouble() ?? 3.0;
-    final bool showLabel = (widget.visualConfig['showLabel'] as bool?) ?? true;
-    final bool showValue = (widget.visualConfig['showValue'] as bool?) ?? false;
+    final mergedConfig = _getMergedConfig();
+    final bool isVertical = (mergedConfig['isVertical'] as bool?) ?? false;
+    final double stepSize = (mergedConfig['stepSize'] as num?)?.toDouble() ?? 28.0;
+    final double connectorWidth = (mergedConfig['connectorWidth'] as num?)?.toDouble() ?? 3.0;
+    final bool showLabel = (mergedConfig['showLabel'] as bool?) ?? true;
+    final bool showValue = (mergedConfig['showValue'] as bool?) ?? false;
     
-    final Color completedColor = _hexColor((widget.visualConfig['completedColor'] as String?) ?? '#6C63FF');
-    final Color pendingColor = _hexColor((widget.visualConfig['pendingColor'] as String?) ?? '#E0E0E0');
+    final Color completedColor = _hexColor((mergedConfig['completedColor'] as String?) ?? '#6C63FF');
+    final Color pendingColor = _hexColor((mergedConfig['pendingColor'] as String?) ?? '#E0E0E0');
     
-    final points = widget.series.points;
+    final bool isClickable = (mergedConfig['isClickable'] as bool?) ?? false;
+    final String? description = mergedConfig['description']?.toString();
 
-    return Container(
+    final points = widget.series.points ?? [];
+
+    Widget content = Container(
       color: const Color(0xFF1A1B2E),
       padding: const EdgeInsets.all(16.0),
       child: AnimatedBuilder(
@@ -70,6 +86,39 @@ class _StepProgressWidgetState extends State<StepProgressWidget> with SingleTick
         },
       ),
     );
+
+    if (description != null) {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Flexible(child: content),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF9A9AB0), fontSize: 11, fontStyle: FontStyle.italic),
+          ),
+        ],
+      );
+    }
+
+    if (isClickable) {
+      return GestureDetector(
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${widget.series.seriesLabel} clicked!'),
+              duration: const Duration(seconds: 1),
+              backgroundColor: const Color(0xFF6C63FF),
+            ),
+          );
+        },
+        child: content,
+      );
+    }
+    
+    return content;
   }
 
   Widget _buildLabels(List<ChartDataPointV2> points, bool isVertical, double stepSize, bool showLabel, bool showValue) {

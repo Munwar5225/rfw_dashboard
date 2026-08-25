@@ -36,14 +36,31 @@ class _TierWidgetState extends State<TierWidget> with SingleTickerProviderStateM
     super.dispose();
   }
 
+  Map<String, dynamic> _getMergedConfig() {
+    final Map<String, dynamic> globalProps = widget.visualConfig;
+    final graphsConfig = globalProps['graphs'] as Map<String, dynamic>?;
+    final Map<String, dynamic> graphOverrides = (graphsConfig?[widget.series.seriesKey] as Map<String, dynamic>?) ?? {};
+    
+    return {
+      ...globalProps,
+      ...widget.series.visualConfig,
+      ...graphOverrides,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final bool showRank = (widget.visualConfig['showRank'] as bool?) ?? true;
-    final bool showVolumn = (widget.visualConfig['showVolumn'] as bool?) ?? true;
-    final bool showValues = (widget.visualConfig['showValues'] as bool?) ?? true;
-    final points = widget.series.points;
+    final mergedConfig = _getMergedConfig();
+    final bool showRank = (mergedConfig['showRank'] as bool?) ?? true;
+    final bool showVolumn = (mergedConfig['showVolumn'] as bool?) ?? true;
+    final bool showValues = (mergedConfig['showValues'] as bool?) ?? true;
+    
+    final bool isClickable = (mergedConfig['isClickable'] as bool?) ?? false;
+    final String? description = mergedConfig['description']?.toString();
 
-    return Container(
+    final points = widget.series.points ?? [];
+
+    Widget content = Container(
       color: const Color(0xFF1A1B2E),
       padding: const EdgeInsets.all(16.0),
       child: ListView.separated(
@@ -121,5 +138,38 @@ class _TierWidgetState extends State<TierWidget> with SingleTickerProviderStateM
         },
       ),
     );
+
+    if (description != null) {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Flexible(child: content),
+          const SizedBox(height: 8),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Color(0xFF9A9AB0), fontSize: 11, fontStyle: FontStyle.italic),
+          ),
+        ],
+      );
+    }
+
+    if (isClickable) {
+      return GestureDetector(
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${widget.series.seriesLabel} clicked!'),
+              duration: const Duration(seconds: 1),
+              backgroundColor: const Color(0xFF6C63FF),
+            ),
+          );
+        },
+        child: content,
+      );
+    }
+    
+    return content;
   }
 }

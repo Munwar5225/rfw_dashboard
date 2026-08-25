@@ -31,14 +31,26 @@ class DualAxisLineWidget extends StatelessWidget {
     leftSeries ??= seriesList.isNotEmpty ? seriesList[0] : null;
     rightSeries ??= seriesList.length > 1 ? seriesList[1] : null;
 
+    final graphsConfig = visualConfig['graphs'] as Map<String, dynamic>? ?? {};
+    final leftConfig = leftSeries != null ? (graphsConfig[leftSeries.seriesKey] as Map<String, dynamic>? ?? {}) : {};
+    final rightConfig = rightSeries != null ? (graphsConfig[rightSeries.seriesKey] as Map<String, dynamic>? ?? {}) : {};
+
     final String leftAxisLabel = (visualConfig['leftAxisLabel'] as String?) ?? '';
     final String rightAxisLabel = (visualConfig['rightAxisLabel'] as String?) ?? '';
-    final Color leftColor = _hexColor(visualConfig['leftAxisColor']?.toString() ?? '#6C63FF');
-    final Color rightColor = _hexColor(visualConfig['rightAxisColor']?.toString() ?? '#FF6B6B');
+    final Color leftColor = _hexColor(leftConfig['color']?.toString() ?? visualConfig['leftAxisColor']?.toString() ?? '#6C63FF');
+    final Color rightColor = _hexColor(rightConfig['color']?.toString() ?? visualConfig['rightAxisColor']?.toString() ?? '#FF6B6B');
+    
     final bool isCurved = (visualConfig['isCurved'] as bool?) ?? true;
     final bool showDots = (visualConfig['showDots'] as bool?) ?? true;
     final double lineWidth = (visualConfig['lineWidth'] as num?)?.toDouble() ?? 2.5;
     final bool showGrid = (visualConfig['showGrid'] as bool?) ?? true;
+
+    final List<String> descriptions = [];
+    bool isAnyClickable = false;
+    
+    if (leftConfig['description'] != null) descriptions.add(leftConfig['description'].toString());
+    if (rightConfig['description'] != null) descriptions.add(rightConfig['description'].toString());
+    if (leftConfig['isClickable'] == true || rightConfig['isClickable'] == true) isAnyClickable = true;
 
     double leftMax = 1;
     double rightMax = 1;
@@ -93,7 +105,7 @@ class DualAxisLineWidget extends StatelessWidget {
       );
     }
 
-    return Container(
+    Widget content = Container(
       color: const Color(0xFF1A1B2E),
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -106,6 +118,7 @@ class DualAxisLineWidget extends StatelessWidget {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
+                      interval: 1,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
                         if (index >= 0 && index < xLabels.length) {
@@ -169,9 +182,34 @@ class DualAxisLineWidget extends StatelessWidget {
                   ],
                 ),
             ],
-          )
+          ),
+          if (descriptions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            ...descriptions.map((desc) => Text(
+                  desc,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Color(0xFF9A9AB0), fontSize: 11, fontStyle: FontStyle.italic),
+                )).toList(),
+          ]
         ],
       ),
     );
+
+    if (isAnyClickable) {
+      return GestureDetector(
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Dual axis line chart clicked!'),
+              duration: Duration(seconds: 1),
+              backgroundColor: Color(0xFF6C63FF),
+            ),
+          );
+        },
+        child: content,
+      );
+    }
+    
+    return content;
   }
 }

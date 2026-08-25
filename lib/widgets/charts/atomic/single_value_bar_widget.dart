@@ -16,16 +16,33 @@ class SingleValueBarWidget extends StatelessWidget {
     return Color(int.parse(h.length == 6 ? 'FF$h' : h, radix: 16));
   }
 
+  Map<String, dynamic> _getMergedConfig() {
+    final Map<String, dynamic> globalProps = visualConfig;
+    final graphsConfig = globalProps['graphs'] as Map<String, dynamic>?;
+    final graphOverrides = graphsConfig != null && graphsConfig.isNotEmpty 
+        ? graphsConfig.values.first as Map<String, dynamic> 
+        : <String, dynamic>{};
+    
+    return {
+      ...globalProps,
+      ...graphOverrides,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final String orientation = (visualConfig['orientation'] as String?) ?? 'horizontal';
-    final double maxValue = (visualConfig['maxValue'] as num?)?.toDouble() ?? 100.0;
-    final String filledColorStr = (visualConfig['filledColor'] as String?) ?? point.color ?? '#6C63FF';
-    final String emptyColorStr = (visualConfig['emptyColor'] as String?) ?? '#E0E0E0';
-    final double barHeight = (visualConfig['barHeight'] as num?)?.toDouble() ?? 24.0;
-    final double barRadius = (visualConfig['barRadius'] as num?)?.toDouble() ?? 12.0;
-    final bool showPercentage = (visualConfig['showPercentage'] as bool?) ?? true;
-    final bool showValue = (visualConfig['showValue'] as bool?) ?? true;
+    final mergedConfig = _getMergedConfig();
+    final String orientation = (mergedConfig['orientation'] as String?) ?? 'horizontal';
+    final double maxValue = (mergedConfig['maxValue'] as num?)?.toDouble() ?? 100.0;
+    final String filledColorStr = (mergedConfig['filledColor'] as String?) ?? point.color ?? '#6C63FF';
+    final String emptyColorStr = (mergedConfig['emptyColor'] as String?) ?? '#E0E0E0';
+    final double barHeight = (mergedConfig['barHeight'] as num?)?.toDouble() ?? 24.0;
+    final double barRadius = (mergedConfig['barRadius'] as num?)?.toDouble() ?? 12.0;
+    final bool showPercentage = (mergedConfig['showPercentage'] as bool?) ?? true;
+    final bool showValue = (mergedConfig['showValue'] as bool?) ?? true;
+    
+    final bool isClickable = (mergedConfig['isClickable'] as bool?) ?? false;
+    final String? description = mergedConfig['description']?.toString();
 
     final double value = point.value?.toDouble() ?? 0.0;
     final Color filledColor = _hexColor(filledColorStr);
@@ -111,7 +128,7 @@ class SingleValueBarWidget extends StatelessWidget {
       },
     );
 
-    return Container(
+    Widget content = Container(
       color: const Color(0xFF1A1B2E),
       padding: const EdgeInsets.all(16.0),
       child: orientation == 'horizontal'
@@ -128,13 +145,17 @@ class SingleValueBarWidget extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(value.toStringAsFixed(1), style: const TextStyle(color: Color(0xFF9A9AB0))),
                 ],
+                if (description != null) ...[
+                  const SizedBox(height: 8),
+                  Text(description, style: const TextStyle(color: Color(0xFF9A9AB0), fontSize: 11, fontStyle: FontStyle.italic)),
+                ],
               ],
             )
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 bar,
-                if (point.key != null || showValue) ...[
+                if (point.key != null || showValue || description != null) ...[
                   const SizedBox(width: 8),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -142,11 +163,29 @@ class SingleValueBarWidget extends StatelessWidget {
                     children: [
                       if (point.key != null) Text(point.key!, style: const TextStyle(color: Color(0xFFEFEFF4))),
                       if (showValue) Text(value.toStringAsFixed(1), style: const TextStyle(color: Color(0xFF9A9AB0))),
+                      if (description != null) Text(description, style: const TextStyle(color: Color(0xFF9A9AB0), fontSize: 11, fontStyle: FontStyle.italic)),
                     ],
                   )
                 ]
               ],
             ),
     );
+
+    if (isClickable) {
+      return GestureDetector(
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${point.key ?? 'Single bar'} clicked!'),
+              duration: const Duration(seconds: 1),
+              backgroundColor: const Color(0xFF6C63FF),
+            ),
+          );
+        },
+        child: content,
+      );
+    }
+    
+    return content;
   }
 }
