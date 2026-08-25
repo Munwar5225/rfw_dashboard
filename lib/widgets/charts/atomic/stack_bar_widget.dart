@@ -23,16 +23,31 @@ class StackBarWidget extends StatelessWidget {
     return Color(int.parse(h.length == 6 ? 'FF$h' : h, radix: 16));
   }
 
+  Map<String, dynamic> _getMergedConfig() {
+    final Map<String, dynamic> globalProps = visualConfig;
+    final graphsConfig = globalProps['graphs'] as Map<String, dynamic>?;
+    final Map<String, dynamic> graphOverrides = (graphsConfig?[series.seriesKey] as Map<String, dynamic>?) ?? {};
+    
+    return {
+      ...globalProps,
+      ...series.visualConfig,
+      ...graphOverrides,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final double barWidth = (visualConfig['barWidth'] as num?)?.toDouble() ?? 22.0;
-    final bool isVerticalLabel = (visualConfig['isVerticalLabel'] as bool?) ?? false;
-    final bool showLegend = (visualConfig['showLegend'] as bool?) ?? true;
-    final bool showValues = (visualConfig['showValues'] as bool?) ?? false;
+    final mergedConfig = _getMergedConfig();
+    final double barWidth = (mergedConfig['barWidth'] as num?)?.toDouble() ?? 22.0;
+    final bool isVerticalLabel = (mergedConfig['isVerticalLabel'] as bool?) ?? false;
+    final bool showLegend = (mergedConfig['showLegend'] as bool?) ?? true;
+    final bool showValues = (mergedConfig['showValues'] as bool?) ?? false;
+    final bool isClickable = (mergedConfig['isClickable'] as bool?) ?? false;
+    final String? description = mergedConfig['description']?.toString();
     
     final points = series.points ?? [];
 
-    return Container(
+    Widget content = Container(
       color: const Color(0xFF1A1B2E),
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -41,9 +56,9 @@ class StackBarWidget extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                if (visualConfig['toggleLabel'] != null)
+                if (mergedConfig['toggleLabel'] != null)
                   Text(
-                    visualConfig['toggleLabel'].toString(),
+                    mergedConfig['toggleLabel'].toString(),
                     style: const TextStyle(color: Color(0xFFEFEFF4)),
                   ),
                 Switch(
@@ -158,9 +173,34 @@ class StackBarWidget extends StatelessWidget {
                 );
               }).toList(),
             ),
-          ]
+          ],
+          if (description != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF9A9AB0), fontSize: 11, fontStyle: FontStyle.italic),
+            ),
+          ],
         ],
       ),
     );
+
+    if (isClickable) {
+      return GestureDetector(
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${series.seriesLabel} clicked!'),
+              duration: const Duration(seconds: 1),
+              backgroundColor: const Color(0xFF6C63FF),
+            ),
+          );
+        },
+        child: content,
+      );
+    }
+    
+    return content;
   }
 }
