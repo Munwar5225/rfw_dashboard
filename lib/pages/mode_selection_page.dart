@@ -13,20 +13,20 @@ class ModeSelectionPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF0F0E17),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 56),
+              const SizedBox(height: 40),
 
               // ── Logo / Title ────────────────────────────────────────────────
               Center(
                 child: Column(
                   children: [
                     Container(
-                      width: 72,
-                      height: 72,
+                      width: 68,
+                      height: 68,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFF6C63FF), Color(0xFF03DAC6)],
@@ -45,20 +45,20 @@ class ModeSelectionPage extends StatelessWidget {
                       child: const Icon(
                         Icons.bar_chart_rounded,
                         color: Colors.white,
-                        size: 40,
+                        size: 38,
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     const Text(
                       'RFW Dashboard',
                       style: TextStyle(
                         color: Color(0xFFEFEFF4),
-                        fontSize: 28,
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 0.3,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     const Text(
                       'Choose a chart rendering mode',
                       style: TextStyle(
@@ -70,7 +70,7 @@ class ModeSelectionPage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 56),
+              const SizedBox(height: 36),
 
               // ── Mode Cards ──────────────────────────────────────────────────
               _ModeCard(
@@ -88,7 +88,7 @@ class ModeSelectionPage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               _ModeCard(
                 icon: Icons.tune_rounded,
@@ -105,7 +105,7 @@ class ModeSelectionPage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               _ModeCard(
                 icon: Icons.auto_awesome_rounded,
@@ -122,7 +122,7 @@ class ModeSelectionPage extends StatelessWidget {
                 ),
               ),
 
-              const Spacer(),
+              const SizedBox(height: 32),
 
               // ── Footer note ─────────────────────────────────────────────────
               const Padding(
