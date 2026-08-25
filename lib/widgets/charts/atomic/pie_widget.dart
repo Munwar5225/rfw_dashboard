@@ -122,7 +122,9 @@ class _PieWidgetState extends State<PieWidget> {
                   );
                 }
 
-                final String? finalCenterText = widget.centerText ?? widget.visualConfig['centerText']?.toString();
+                final String? finalCenterText = widget.centerText ?? 
+                                                widget.series.visualConfig['centerText']?.toString() ?? 
+                                                widget.visualConfig['centerText']?.toString();
 
                 return Stack(
                   alignment: widget.isHalf ? Alignment.bottomCenter : Alignment.center,
