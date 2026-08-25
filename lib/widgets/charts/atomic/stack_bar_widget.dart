@@ -82,6 +82,7 @@ class StackBarWidget extends StatelessWidget {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
+                      interval: 1,
                       reservedSize: isVerticalLabel ? 60 : 30,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
