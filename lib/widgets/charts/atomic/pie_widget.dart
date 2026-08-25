@@ -122,15 +122,17 @@ class _PieWidgetState extends State<PieWidget> {
                   );
                 }
 
+                final String? finalCenterText = widget.centerText ?? widget.visualConfig['centerText']?.toString();
+
                 return Stack(
                   alignment: widget.isHalf ? Alignment.bottomCenter : Alignment.center,
                   children: [
                     chart,
-                    if (showCenterText && widget.centerText != null)
+                    if (showCenterText && finalCenterText != null)
                       Positioned(
                         bottom: widget.isHalf ? 0 : null,
                         child: Text(
-                          widget.centerText!,
+                          finalCenterText,
                           style: TextStyle(
                             color: const Color(0xFFEFEFF4),
                             fontSize: (holeRadius * 0.4).clamp(10.0, 18.0),
