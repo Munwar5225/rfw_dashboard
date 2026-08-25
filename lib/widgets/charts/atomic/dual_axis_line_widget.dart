@@ -138,6 +138,8 @@ class DualAxisLineWidget extends StatelessWidget {
                   ),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
+                minX: -0.2,
+                maxX: xLabels.isNotEmpty ? (xLabels.length - 1) + 0.2 : 0,
                 borderData: FlBorderData(show: false),
                 lineBarsData: lineBars,
                 minY: 0,

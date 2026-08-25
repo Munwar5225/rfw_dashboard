@@ -29,7 +29,7 @@ class QuadPieScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(8.0),
                   child: Text(s.seriesLabel, style: const TextStyle(color: Color(0xFFEFEFF4), fontSize: 14, fontWeight: FontWeight.w500)),
                 ),
-                Expanded(child: PieWidget(series: s, visualConfig: config.visualConfig)),
+                Expanded(child: PieWidget(series: s, visualConfig: config.visualConfig, isHalf: true)),
               ],
             )).toList(),
           ),

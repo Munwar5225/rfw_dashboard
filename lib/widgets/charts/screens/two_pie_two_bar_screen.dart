@@ -48,6 +48,7 @@ class TwoPieTwoBarScreen extends StatelessWidget {
                               child: PieWidget(
                                 series: s,
                                 visualConfig: config.visualConfig,
+                                isHalf: true,
                               ),
                             ),
                           ],
