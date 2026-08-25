@@ -44,6 +44,7 @@ class DualAxisLineWidget extends StatelessWidget {
     final bool showDots = (visualConfig['showDots'] as bool?) ?? true;
     final double lineWidth = (visualConfig['lineWidth'] as num?)?.toDouble() ?? 2.5;
     final bool showGrid = (visualConfig['showGrid'] as bool?) ?? true;
+    final bool showLabels = (visualConfig['showLabels'] as bool?) ?? true;
 
     final List<String> descriptions = [];
     bool isAnyClickable = false;
@@ -117,7 +118,7 @@ class DualAxisLineWidget extends StatelessWidget {
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
-                      showTitles: true,
+                      showTitles: showLabels,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
@@ -133,12 +134,12 @@ class DualAxisLineWidget extends StatelessWidget {
                   ),
                   leftTitles: AxisTitles(
                     axisNameWidget: leftAxisLabel.isNotEmpty ? Text(leftAxisLabel, style: TextStyle(color: leftColor)) : null,
-                    sideTitles: const SideTitles(showTitles: true, reservedSize: 40),
+                    sideTitles: SideTitles(showTitles: showLabels, reservedSize: 40),
                   ),
                   rightTitles: AxisTitles(
                     axisNameWidget: rightAxisLabel.isNotEmpty ? Text(rightAxisLabel, style: TextStyle(color: rightColor)) : null,
                     sideTitles: SideTitles(
-                      showTitles: rightSeries != null,
+                      showTitles: showLabels && rightSeries != null,
                       reservedSize: 40,
                       getTitlesWidget: (value, meta) {
                         final originalValue = value / ratio;

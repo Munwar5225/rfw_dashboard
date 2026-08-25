@@ -82,6 +82,7 @@ class BarWidget extends StatelessWidget {
     final bool showGrid = (mergedConfig['showGrid'] as bool?) ?? true;
     final bool showTarget = (mergedConfig['showTarget'] as bool?) ?? false;
     final bool showValues = (mergedConfig['showValues'] as bool?) ?? false;
+    final bool showLabels = (mergedConfig['showLabels'] as bool?) ?? true;
     final String? overallColor = mergedConfig['color']?.toString();
     
     final points = series.points ?? [];
@@ -98,12 +99,12 @@ class BarWidget extends StatelessWidget {
         BarChartData(
           gridData: FlGridData(show: showGrid, drawVerticalLine: false),
           titlesData: FlTitlesData(
-            leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: showLabels, reservedSize: 40)),
             rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
-                showTitles: true,
+                showTitles: showLabels,
                 interval: 1,
                 getTitlesWidget: (value, meta) {
                   final index = value.toInt();

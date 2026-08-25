@@ -22,6 +22,8 @@ class LineWidget extends StatelessWidget {
     final bool showGrid = (visualConfig['showGrid'] as bool?) ?? true;
     final bool showValues = (visualConfig['showValues'] as bool?) ?? false;
 
+    final bool showLabels = (visualConfig['showLabels'] as bool?) ?? true;
+
     // Use first series to get x-axis labels
     List<String> xLabels = [];
     if (seriesList.isNotEmpty && seriesList.first.points != null) {
@@ -55,7 +57,7 @@ class LineWidget extends StatelessWidget {
                 titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
-                      showTitles: true,
+                      showTitles: showLabels,
                       interval: 1,
                       getTitlesWidget: (value, meta) {
                         final index = value.toInt();
@@ -72,8 +74,8 @@ class LineWidget extends StatelessWidget {
                       },
                     ),
                   ),
-                  leftTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: true, reservedSize: 40),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: showLabels, reservedSize: 40),
                   ),
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),

@@ -42,6 +42,7 @@ class StackBarWidget extends StatelessWidget {
     final bool isVerticalLabel = (mergedConfig['isVerticalLabel'] as bool?) ?? false;
     final bool showLegend = (mergedConfig['showLegend'] as bool?) ?? true;
     final bool showValues = (mergedConfig['showValues'] as bool?) ?? false;
+    final bool showLabels = (mergedConfig['showLabels'] as bool?) ?? true;
     final bool isClickable = (mergedConfig['isClickable'] as bool?) ?? false;
     final String? description = mergedConfig['description']?.toString();
     
@@ -76,12 +77,12 @@ class StackBarWidget extends StatelessWidget {
               BarChartData(
                 gridData: FlGridData(show: true, drawVerticalLine: false),
                 titlesData: FlTitlesData(
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: showLabels, reservedSize: 40)),
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
-                      showTitles: true,
+                      showTitles: showLabels,
                       interval: 1,
                       reservedSize: isVerticalLabel ? 60 : 30,
                       getTitlesWidget: (value, meta) {
