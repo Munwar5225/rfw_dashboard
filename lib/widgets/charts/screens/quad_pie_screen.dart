@@ -20,20 +20,41 @@ class QuadPieScreen extends StatelessWidget {
       children: [
         
         Expanded(
-          child: GridView.count(
-            crossAxisCount: 2,
-            childAspectRatio: 1.0,
-            children: seriesList.map((s) => Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(s.seriesLabel, style: const TextStyle(color: Color(0xFFEFEFF4), fontSize: 14, fontWeight: FontWeight.w500)),
+          child: Column(
+            children: [
+              if (seriesList.isNotEmpty)
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(child: _buildCell(seriesList[0])),
+                      if (seriesList.length > 1) Expanded(child: _buildCell(seriesList[1])) else const Spacer(),
+                    ],
+                  ),
                 ),
-                Expanded(child: PieWidget(series: s, visualConfig: config.visualConfig, isHalf: true)),
-              ],
-            )).toList(),
+              if (seriesList.length > 2)
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(child: _buildCell(seriesList[2])),
+                      if (seriesList.length > 3) Expanded(child: _buildCell(seriesList[3])) else const Spacer(),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildCell(ChartSeriesV2 s) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(s.seriesLabel, style: const TextStyle(color: Color(0xFFEFEFF4), fontSize: 14, fontWeight: FontWeight.w500)),
+        ),
+        Expanded(child: PieWidget(series: s, visualConfig: config.visualConfig, isHalf: true)),
       ],
     );
   }
